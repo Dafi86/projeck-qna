@@ -3,13 +3,13 @@ function get_all_questions($limit = null, $offset = null) {
     global $conn;
     $sql = "
         SELECT q.question_id, q.title, q.body, q.created_at, u.name AS user_name,
-               GROUP_CONCAT(t.tag_name SEPARATOR ', ') AS tags
+               COALESCE(GROUP_CONCAT(t.tag_name ORDER BY t.tag_id ASC LIMIT 1), 'No Tag') AS tags
         FROM question q
         LEFT JOIN user u ON q.user_id = u.user_id
         LEFT JOIN question_tag qt ON q.question_id = qt.question_id
         LEFT JOIN tag t ON qt.tag_id = t.tag_id
         GROUP BY q.question_id
-        ORDER BY q.question_id ASC
+        ORDER BY q.question_id DESC
     ";
     if ($limit !== null && $offset !== null) {
         $sql .= " LIMIT $limit OFFSET $offset";
