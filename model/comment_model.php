@@ -1,5 +1,6 @@
 <?php
-require_once '../koneksi.php';
+
+require_once __DIR__ . '/../koneksi.php';
 
 function get_comments_by_question($question_id) {
     global $conn;

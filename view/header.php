@@ -2,7 +2,8 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-require_once '../koneksi.php';
+
+require_once __DIR__ . '/../koneksi.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">

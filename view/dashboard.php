@@ -260,11 +260,12 @@ include 'header.php';
         <?php endwhile; ?>
     </div>
 
+
     <!-- Pagination Tabs -->
     <?php if ($total_pages > 1): ?>
         <div class="pagination" style="margin-top: 20px;">
             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <a href="?page=<?= $i ?><?= $tag_filter ? '&tag_id=' . urlencode($tag_filter) : '' ?>"
+                <a href="index.php?controller=dashboard&action=index&page=<?= $i ?><?= $tag_filter ? '&tag_id=' . urlencode($tag_filter) : '' ?><?= $search_title ? '&search_title=' . urlencode($search_title) : '' ?>"
                     style="padding: 5px 10px; margin: 0 3px; border: 1px solid #ccc; text-decoration: none; <?= ($i == $page) ? 'font-weight: bold; background-color: #eee;' : '' ?>">
                     <?= $i ?>
                 </a>

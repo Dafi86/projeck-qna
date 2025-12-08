@@ -1,15 +1,17 @@
+
 <?php
+require_once __DIR__ . '/../koneksi.php';
 function get_all_questions($limit = null, $offset = null) {
     global $conn;
     $sql = "
         SELECT q.question_id, q.title, q.body, q.created_at, u.name AS user_name,
-               GROUP_CONCAT(t.tag_name SEPARATOR ', ') AS tags
+               COALESCE(GROUP_CONCAT(t.tag_name ORDER BY t.tag_id ASC LIMIT 1), 'No Tag') AS tags
         FROM question q
         LEFT JOIN user u ON q.user_id = u.user_id
         LEFT JOIN question_tag qt ON q.question_id = qt.question_id
         LEFT JOIN tag t ON qt.tag_id = t.tag_id
         GROUP BY q.question_id
-        ORDER BY q.question_id ASC
+        ORDER BY q.question_id DESC
     ";
     if ($limit !== null && $offset !== null) {
         $sql .= " LIMIT $limit OFFSET $offset";
@@ -68,21 +70,20 @@ function get_user_questions($user_id) {
     return $questions;
 }
 
-function search_questions($keyword) {
+function search_questions($keyword, $limit = null, $offset = null) {
     global $conn;
     $keyword = mysqli_real_escape_string($conn, $keyword);
-    $query = "SELECT q.*, u.name as user_name, s.school_name 
-              FROM question q 
-              JOIN user u ON q.user_id = u.user_id 
-              LEFT JOIN school s ON u.school_id = s.school_id 
-              WHERE q.title LIKE '%$keyword%' OR q.body LIKE '%$keyword%' 
+    $query = "SELECT q.*, u.name as user_name, s.school_name
+              FROM question q
+              JOIN user u ON q.user_id = u.user_id
+              LEFT JOIN school s ON u.school_id = s.school_id
+              WHERE q.title LIKE '%$keyword%' OR q.body LIKE '%$keyword%'
               ORDER BY q.created_at DESC";
-    $result = mysqli_query($conn, $query);
-    $questions = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $questions[] = $row;
+    if ($limit !== null && $offset !== null) {
+        $query .= " LIMIT $limit OFFSET $offset";
     }
-    return $questions;
+    $result = mysqli_query($conn, $query);
+    return $result;
 }
 
 function fetch_questions_by_tag($tag_id = null, $limit = null, $offset = null) {
@@ -163,5 +164,7 @@ function get_top_answers_by_votes_by_school($school_id) {
     }
     return $top_answers;
 }
+
+
 
 ?>

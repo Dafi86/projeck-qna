@@ -1,5 +1,6 @@
 <?php
-require_once '../koneksi.php';
+
+require_once __DIR__ . '/../koneksi.php';
 
 function get_users_by_school($school_id) {
     global $conn;

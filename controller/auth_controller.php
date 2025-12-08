@@ -1,64 +1,10 @@
+
 <?php
-session_start();
-require_once '../koneksi.php';
-require_once '../model/user_model.php';
-require_once '../model/school_model.php';
+require_once __DIR__ . '/../koneksi.php';
+require_once __DIR__ . '/../model/user_model.php';
+require_once __DIR__ . '/../model/school_model.php';
 
-function register() {
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        $name = trim($_POST['name']);
-        $email = trim($_POST['email']);
-        $password = $_POST['password'];
-        $school_id = $_POST['school_id'];
-        $role = $_POST['role'] ?? '';
-        $new_school_name = trim($_POST['new_school_name'] ?? '');
-
-        // Validasi
-        if (empty($name) || empty($email) || empty($password) || (empty($school_id) && empty($new_school_name)) || empty($role)) {
-            $_SESSION['error'] = "Semua field harus diisi";
-            header('Location: ../controller/auth_controller.php?action=register');
-            exit;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $_SESSION['error'] = "Email tidak valid";
-            header('Location: ../controller/auth_controller.php?action=register');
-            exit;
-        }
-
-        // Cek apakah email sudah terdaftar
-        $existing_user = get_user_by_email($email);
-        if ($existing_user) {
-            $_SESSION['error'] = "Email sudah terdaftar";
-            header('Location: ../controller/auth_controller.php?action=register');
-            exit;
-        }
-
-        // Jika user memasukkan nama sekolah baru, tambahkan ke database
-        if (!empty($new_school_name)) {
-            $new_school_id = add_school($new_school_name);
-            if ($new_school_id === false) {
-                $_SESSION['error'] = "Gagal menambahkan sekolah baru";
-                header('Location: ../controller/auth_controller.php?action=register');
-                exit;
-            }
-            $school_id = $new_school_id;
-        }
-
-        // Buat user baru tanpa password hashing (plain text)
-        if (create_user($name, $email, $password, $school_id, $role)) {
-            $_SESSION['success'] = "Registrasi berhasil. Silakan login.";
-            header('Location: ../controller/auth_controller.php?action=login');
-            exit;
-        } else {
-            $_SESSION['error'] = "Registrasi gagal";
-            header('Location: ../controller/auth_controller.php?action=register');
-            exit;
-        }
-    }
-}
-
-function login() {
+function login_action() {
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email = trim($_POST['email']);
         $password = $_POST['password'];
@@ -76,9 +22,9 @@ function login() {
         if ($user) {
             // Verify selected role matches user's actual role
             if ($selected_role !== $user['role']) {
-                $_SESSION['error'] = "Role yang dipilih tidak sesuai dengan akun";
-                header('Location: ../controller/auth_controller.php?action=login');
-                exit;
+                set_message('error', "Role yang dipilih tidak sesuai dengan akun");
+                redirect('index.php?controller=auth&action=login');
+                return;
             }
 
             $_SESSION['user_id'] = $user['user_id'];
@@ -90,65 +36,94 @@ function login() {
 
             // Redirect based on role
             if ($user['role'] === 'teacher') {
-                header('Location: ../controller/teacher_controller.php?action=dashboard');
+                redirect('index.php?controller=teacher&action=dashboard');
             } else {
-                header('Location: ../controller/dashboard_controller.php');
+                redirect('index.php?controller=dashboard&action=index');
             }
-            exit;
+            return;
         } else {
-            $_SESSION['error'] = "Email atau password salah";
-            header('Location: ../controller/auth_controller.php?action=login');
-            exit;
+            set_message('error', "Email atau password salah");
+            redirect('index.php?controller=auth&action=login');
+            return;
         }
     }
+    
+    // Tampilkan login form
+    load_view('login');
 }
 
-function logout() {
-    session_destroy();
-    header('Location: ../view/login.php');
-    exit;
-}
+function register_action() {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $name = trim($_POST['name']);
+        $email = trim($_POST['email']);
+        $password = $_POST['password'];
+        $school_id = $_POST['school_id'];
+        $role = $_POST['role'] ?? '';
+        $new_school_name = trim($_POST['new_school_name'] ?? '');
 
-// Handle actions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $action = $_POST['action'] ?? '';
-    if ($action == 'register') {
-        register();
-    } elseif ($action == 'login') {
-        login();
-    }
-} elseif (isset($_GET['action'])) {
-    $action = $_GET['action'];
-    switch ($action) {
-        case 'login':
-            include '../view/login.php';
-            break;
-        case 'register':
-            include '../view/register.php';
-            break;
-        case 'dashboard':
-            if (!isset($_SESSION['user_id'])) {
-                header('Location: ../controller/auth_controller.php?action=login');
-                exit;
+        // Validasi
+        if (empty($name) || empty($email) || empty($password) || (empty($school_id) && empty($new_school_name)) || empty($role)) {
+            set_message('error', "Semua field harus diisi");
+            redirect('index.php?controller=auth&action=register');
+            return;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            set_message('error', "Email tidak valid");
+            redirect('index.php?controller=auth&action=register');
+            return;
+        }
+
+        // Cek apakah email sudah terdaftar
+        $existing_user = get_user_by_email($email);
+        if ($existing_user) {
+            set_message('error', "Email sudah terdaftar");
+            redirect('index.php?controller=auth&action=register');
+            return;
+        }
+
+        // Jika user memasukkan nama sekolah baru, tambahkan ke database
+        if (!empty($new_school_name)) {
+            $new_school_id = add_school($new_school_name);
+            if ($new_school_id === false) {
+                set_message('error', "Gagal menambahkan sekolah baru");
+                redirect('index.php?controller=auth&action=register');
+                return;
             }
-            header('Location: ../controller/dashboard_controller.php');
-            exit;
-            break;
-        case 'logout':
-            logout();
-            break;
-        default:
-            header('HTTP/1.0 404 Not Found');
-            echo 'Action not found';
-            break;
+            $school_id = $new_school_id;
+        }
+
+        // Buat user baru tanpa password hashing (plain text)
+        if (create_user($name, $email, $password, $school_id, $role)) {
+            set_message('success', "Registrasi berhasil. Silakan login.");
+            redirect('index.php?controller=auth&action=login');
+            return;
+        } else {
+            set_message('error', "Registrasi gagal");
+            redirect('index.php?controller=auth&action=register');
+            return;
+        }
     }
-} else {
-    // Default action: check session and redirect
+    
+    // Tampilkan register form
+    load_view('register');
+}
+
+function logout_action() {
+    session_destroy();
+    redirect('index.php?controller=auth&action=login');
+}
+
+function index_action() {
+    // Default action - redirect based on session
     if (isset($_SESSION['user_id'])) {
-        header('Location: ../controller/auth_controller.php?action=dashboard');
+        if ($_SESSION['role'] === 'teacher') {
+            redirect('index.php?controller=teacher&action=dashboard');
+        } else {
+            redirect('index.php?controller=dashboard&action=index');
+        }
     } else {
-        header('Location: ../controller/auth_controller.php?action=login');
+        redirect('index.php?controller=auth&action=login');
     }
-    exit;
 }
 ?>
